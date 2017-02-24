@@ -1,0 +1,69 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+</HEAD>
+<BODY>
+
+<?
+'this one typical use of our dynamic web page, the user can open this web page without correct password
+'but the content will not be shown without correct password.
+
+	include "global.tbh"
+
+	dim http_req_string as string
+	dim password as string
+	dim username as string
+	dim sFIRSTNAME as string
+	dim sLASTNAME as string
+	dim sCOMMENT as string
+	dim sEMAIL as string
+	dim nMSB as byte
+	dim nLSB as byte
+
+	http_req_string = sock.httprqstring
+	
+	username = get_http_argument (http_req_string, "username=")  
+	password = get_http_argument(http_req_string, "password=")
+	if login(username, password) = TRUE then
+		sPOINTER = stor.getdata(1,2)
+		nPOINTER = asc(mid(sPOINTER,1,1))*256+asc(mid(sPOINTER,2,1)) 
+	else
+		sock.setdata("<b>LOGIN FAILED</b>")
+		nPOINTER = 3
+	end if
+	
+?>
+
+<div class="border1">
+<table border="2" cellspacing="0" cellpadding="9" >
+<?	do while nPOINTER > 3 
+		ReadRecord(sFIRSTNAME,sLASTNAME,sCOMMENT,sEMAIL) ?>
+<tr>
+<td>First Name</td>
+<td><b><?sock.setdata(sFIRSTNAME) sock.send ?></b></td>
+<td>Last Name</td>
+<td><b><?sock.setdata(sLASTNAME) sock.send ?></b></td>
+</tr>
+<tr>
+<td>Email</td>
+<th colspan = "3"><?sock.setdata(sEMAIL) sock.send ?></th>
+</tr>
+<tr>
+<td>Comment</td>
+<th colspan = "3"><?sock.setdata(sCOMMENT) sock.send?></th>
+</tr>
+<? 
+sFIRSTNAME = ""
+sLASTNAME = ""
+sCOMMENT = ""
+sEMAIL = ""
+loop 
+username=""
+password""
+?>
+</table>
+
+</BODY>
+</HTML>
+
+    

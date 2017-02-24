@@ -1,0 +1,6 @@
+declare function get_http_argument(byref http_req_string as string, byref argument as string) as string
+declare function login(byref sUSERNAME as string, byref sPASSWORD as string) as boolean
+declare function SaveRecord(byref sFIRSTNAME as string, byref sLASTNAME as string, byref sCOMMENT as string,byref sEMAIL as string) as boolean
+declare function ReadRecord(byref sFIRSTNAME as string, byref sLASTNAME as string, byref sCOMMENT as string,byref sEMAIL as string) as string
+declare nPOINTER as word
+declare sPOINTER as string(2)

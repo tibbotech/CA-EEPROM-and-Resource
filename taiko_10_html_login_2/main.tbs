@@ -1,0 +1,182 @@
+
+'------------------------------------------------------------------------------------------------------
+'										EEPROM & Resource Files Demo
+'------------------------------------------------------------------------------------------------------
+'The purpose of this demo program is to show users, how romfiles, and EPROM memory works. These are the 
+'two places user can have data stored, even when device is power off.
+'How does this demo work?
+'1. User can fill up the form. The data will be saved into EPROM memory, which will stay there even when 
+'   device is reset (restarted).  
+'2. User can check saved data by opening "login.html" page, and enter the correct usernames and passwords.
+'3. Currently there are 2 sets of logins; admin:12345 and webmaster:67890.  User can add, delete or edit 
+'   these accounts by changing the ID.txt under resources folder on the Project File Browser located on 
+'   the left of TIDE.   
+'NOTE:
+'1. EPROM is the internal memory which can be used to store device data. For EM200 series, the size of 
+'   EPROM are 2 K byte. 
+'2  Unlike EPROM, resource file data cannot be changed by the device once they are uploaded.  They will 
+'   be compiled with your code, into one single binary file.  Therefore, the size of resource file you 
+'   can use, also depends on how big your program is.  For EM200 series, the ROM size are 64K, that is, 
+'   your resource file + your code, cannot exceed 64K.   
+'
+'
+'
+'									Please test with Internet Explorer
+'						Javascript code might not be compatible with other browsers
+'
+'
+'
+'RD.041907
+'------------------------------------------------------------------------------------------------------
+
+
+
+include "global.tbh"
+
+public dim nPOINTER as word      	'external variable, can be used to cross the module
+public dim sPOINTER as string(2)	'the POINTER points to the end of the stored data in the EPROM  
+									'the POINTER is saved in the first 2 bytes of the EPROM
+										
+'---------------------------------------------------------------------------------------------------------
+'write data into EPROM memory, using chr(2) as the header of each record, and chr(31) to separete each items in the record.
+public function SaveRecord(byref sFIRSTNAME as string, byref sLASTNAME as string, byref sCOMMENT as string,byref sEMAIL as string) as boolean
+	dim nMSB as byte				'nMSB, and nLSB are the most signficant byte, and least signficant byte of the EPROM memory pointer.
+	dim nLSB as byte				
+	dim sTEMP as string				'before each record is saved from EPROM, the record will be placed into sTEMP first
+	
+	sPOINTER = stor.getdata(1,2)		'read the POINTER from EPROM
+	nPOINTER = asc(mid(sPOINTER,1,1))*256+asc(mid(sPOINTER,2,1))		'convert POINTER from string to word 
+	sTEMP = chr(2) + sFIRSTNAME + chr(31) + sLASTNAME + chr(31) + sCOMMENT +chr(31) + sEMAIL	'adding header and separator for each record
+
+	stor.setdata(sTEMP, nPOINTER)			'saved the record into the EPROM, the record is placed after the current POINTER, and POINTER will 
+	nPOINTER = nPOINTER + len(sTEMP) 	'then point to the end of the newly saved record
+	
+	nMSB = nPOINTER/256					'convert POINTER from worde to the 2 bytes, the most significant byte and least significant byte
+	nLSB = nPOINTER-nMSB*256
+	sPOINTER = chr(nMSB)+chr(nLSB)		'convert POINTER from bytes, to string
+	stor.Setdata(sPOINTER,1)				'stored POINTER to EPROM	
+	if nPOINTER < 2048 then				'if POINTER is smaller than 2K, then the record is saved, if not, meanning saved data exceed the EPROM size
+		SaveRecord = True	
+	else
+		SaveRecord = False
+	end if
+end function
+
+'---------------------------------------------------------------------------------------------------------
+'read data from EPROM, each record is placed into sTEMP after read from EPROM
+public function ReadRecord(byref sFIRSTNAME as string, byref sLASTNAME as string, byref sCOMMENT as string,byref sEMAIL as string) as string
+
+	dim sTEMP as string		'temporary buffer for record		
+	dim nPOS1 as byte		'position of 1st separator
+	dim nPOS2 as byte		'position of 2nd separator
+	dim nPOS3 as byte		'position of 3rd separator
+	dim i as byte			
+
+	sTEMP = ""			
+
+	do while instr(1,sTEMP,chr(2),1) < 1 and nPOINTER > 3
+		nPOINTER = nPOINTER - 1
+		sTEMP = stor.getdata(nPOINTER,1) + sTEMP
+	loop
+	nPOS1 = instr(1,sTEMP,chr(31),1)
+	nPOS2 = instr(1,sTEMP,chr(31),2)
+	nPOS3 = instr(1,sTEMP,chr(31),3)
+		
+	for i = 1 to nPOS1 - 1 							'read from the temporary buffer byte by byte till the first 	
+		sFIRSTNAME = sFIRSTNAME + mid(sTEMP,i,1)	'separator
+	next i 
+	for i = nPOS1 + 1 to nPOS2 - 1					'read till 2nd separator
+		sLASTNAME = sLASTNAME + mid(sTEMP,i,1)
+	next i 
+	for i = nPOS2 + 1 to nPOS3 - 1
+		sCOMMENT = sCOMMENT + mid(sTEMP,i,1)
+	next i 
+	for i = nPOS3 + 1 to len(sTEMP)  		
+		sEMAIL = sEMAIL + mid(sTEMP,i,1)
+	next i 
+end function
+
+'-----------------------------------------------------------------------------------------------------------
+'varify the login username and password matches the data in ID.txt
+public function login(byref sUSERNAME as string, byref sPASSWORD as string) as boolean
+	romfile.open("ID.txt")				'open romfile "ID.txt" 
+	romfile.pointer = 1					'set the pinter to the beginning of the romfile
+		
+	dim sDATA as string					'temporary buffer for each record in the ID.txt
+	dim sCHAR as string(1)	
+	dim bVARIFIED as boolean
+	do while romfile.pointer < romfile.size				'read the romfile byte by byte till the chr(13), the 
+		do while sCHAR <> chr(13) and len(sData) < 254	'record tailer
+			sCHAR = romfile.getdata(1)
+			sDATA = sDATA + sCHAR
+		loop
+		
+		dim sUSER as string								'compare the username and password which were extracted 
+		dim sPWD as string								'from web page, with the username and password stored in 
+		dim nPOS as byte								'ID.txt
+		nPOS = instr(1, sDATA, ":",1)
+		sUSER = mid(sDATA,2,nPOS-2)
+		sPWD = mid(sDATA,nPOS + 1, len(sDATA)-nPOS-1)
+		if sUSERNAME = sUSER then
+			if sPASSWORD = sPWD then
+				bVARIFIED = TRUE
+			else 
+				bVARIFIED = FALSE
+			end if
+			exit do
+		else
+			bVARIFIED = FALSE
+		end if
+		sDATA = ""
+		sCHAR = ""
+	loop
+	login = bVARIFIED
+end function
+
+'-----------------------------------------------------------------------------------------------------------
+'extract argument from webpage
+public function get_http_argument(byref http_req_string as string, byref argument as string) as string
+	dim i, j as byte
+	i = instr(1, http_req_string, argument,1)
+	if (i = 0) then
+		get_http_argument = ""
+	  	exit function
+	end if
+	i = i + len(argument)
+	j = instr(i, http_req_string, "&",1)
+	if (j = 0) then
+		j = instr(i, http_req_string, " ",1)
+		if (j = 0) then
+			j = len(http_req_string) + 1
+		end if
+	end if	
+	get_http_argument = mid(http_req_string, i, j - i)
+end function
+
+'-----------------------------------------------------------------------------------------------------------
+'this event_handler is fired every time when the system starts
+sub on_sys_init
+'set sock 0 for web control	
+	sock.num = 0
+'request buff space for web connection
+	sock.rxbuffrq(1)					
+	sock.txbuffrq(1)
+	sock.varbuffrq(1)
+	sock.protocol=PL_SOCK_PROTOCOL_TCP
+	sock.httpmode=YES
+	sock.inconmode=PL_SOCK_INCONMODE_ANY_IP_ANY_PORT
+	sock.httpportlist="80"
+	net.ip = "192.168.1.108"			'<<------------- IP address, you may have to change this
+	sys.buffalloc
+	nPOINTER = asc(mid(sPOINTER,1,1))*256+asc(mid(sPOINTER,2,1)) 
+	
+end sub
+
+'-----------------------------------------------------------------------------------------------------------
+'on button pressed, reset the EPROM POINTER
+sub on_button_pressed
+	nPOINTER = 3
+	sPOINTER = chr(0) + chr(3)
+	stor.setdata(sPOINTER,1)
+end sub
+

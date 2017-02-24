@@ -1,0 +1,34 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+</HEAD>
+<BODY>
+
+<?
+	include "global.tbh"
+	dim http_req_string as string
+	dim sFIRSTNAME as string
+	dim sLASTNAME as string
+	dim sCOMMENT as string
+	dim sEMAIL as string
+	
+	http_req_string = sock.httprqstring
+	
+	sFIRSTNAME = get_http_argument(http_req_string, "first_name=") 
+	sLASTNAME = get_http_argument(http_req_string, "last_name=")
+	sCOMMENT = get_http_argument(http_req_string, "comment=")
+	sEMAIL = get_http_argument(http_req_string, "email=")
+	
+	if SaveRecord(sFIRSTNAME, sLASTNAME, sCOMMENT, sEMAIL) = TRUE then
+		sock.setdata("<b>Record Saved!</b>")
+	else
+		sock.setdata("<b>Save Failed! </b>")
+	end if
+	sock.send
+?>
+<br>
+<a href="login.html"><b>LOGIN</b></a>
+</BODY>
+</HTML>
+
+    
