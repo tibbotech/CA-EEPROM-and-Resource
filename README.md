@@ -1,5 +1,7 @@
-# CA-EEPROM-and-Resource
+# EEPROM and Resource Files
 
-To download the most recent project without installing GIT, please press the green "Clone or Download" button and select "Download ZIP".
+This demo shows how romfiles and EEPROM memory work. These are the two places used for persistent data storage.
 
-For more detail about this project, please visit <a href="http://tibbo.com/programmable/applications/data_transfer/eeprom.html" target="_blank">Project Description Page</a>
+- Fill in the HTML form. The data will be saved into EEPROM memory, and will stay there after a restart.
+- Verify the data by opening "login.html" and entering the correct usernames and passwords.
+- Add, delete or edit user:password pairs by changing the ID.txt file within the project.
